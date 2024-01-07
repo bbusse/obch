@@ -1,0 +1,12 @@
+terraform {
+  required_providers {
+    flux = {
+      source = "fluxcd/flux"
+      version = "1.2.2"
+    }
+  }
+}
+
+provider "flux" {
+  # Configuration options
+}

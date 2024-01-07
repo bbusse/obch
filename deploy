@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#
+# Deploy app to k8s using fluxcd
+#
+
+DEPLOY_MODE="flux"
+readonly DEPLOY_MODE
+APP_NAMESPACE="app"
+readonly APP_NAMESPACE
+PGSQLHA_VERSION="12.3.7"
+readonly PGSQLHA_VERSION
+PGSQLHA_OCI_URL="oci://registry-1.docker.io/bitnamicharts/postgresql-ha"
+readonly PGSQLHA_OCI_URL
+
+# Create namespace
+kubectl create namespace "${APP_NAMESPACE}"
+
+# Add Helm Charts
+if [ "flux" == $DEPLOY_MODE ]; then
+    # Add Helm Charts via Flux HelmRelease CRD
+    printf "Using flux to create HelmRelease\n"
+    ./flux create helmrelease pgsql-ha \
+        --chart postgresql-ha \
+        --chart-version "${PGSQLHA_VERSION}" \
+        --source HelmRepository/bitnamicharts \
+        --namespace "${APP_NAMESPACE}"
+elif [ "helm" == $DEPLOY_MODE ]; then
+    # Add Helm Charts via Helm
+    printf "Using Helm to install Chart\n"
+    helm install pgsql-ha "${PGSQLHA_OCI_URL}" \
+        --version "${PGSQLHA_VERSION}" \
+        --namespace "${APP_NAMESPACE}"
+fi

@@ -1,0 +1,25 @@
+name: Setup cluster
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  setup-cluster:
+    name: minikube
+    runs-on: ubuntu-latest
+    steps:
+      - name: start minikube
+        id: minikube
+        uses: medyagh/setup-minikube@latest
+      - name: kubectl
+        run: kubectl get pods -A

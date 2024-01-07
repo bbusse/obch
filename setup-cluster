@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+#
+# Setup a local minikube cluster
+# with k8s dashboard and flux
+#
+
+set -eo pipefail
+
+PRJ="obch"
+readonly PRJ
+USE_TF=0
+readonly USE_TF
+GITEA_HOSTNAME="git.e2m.io"
+readonly GITEA_HOSTNAME
+GITEA_USER="obch-flux"
+readonly GITEA_USER
+FLUX_VERSION="2.2.1"
+readonly FLUX_VERSION
+FLUX_CHECKSUM="466756ca6b3437d30a6a5fb58e60f3e5a82d8291f3869cfc55b6f041962601b5"
+readonly FLUX_CHECKSUM
+FLUX_ARCHIVE="flux_${FLUX_VERSION}_linux_amd64.tar.gz"
+readonly FLUX_ARCHIVE
+FLUX_URL="https://github.com/fluxcd/flux2/releases/download/v${FLUX_VERSION}/${FLUX_ARCHIVE}"
+readonly FLUX_URL
+FLUX_FORCE_LOCAL=1
+readonly FLUX_FORCE_LOCAL
+TF_VERSION="1.6.6"
+readonly TF_VERSION
+TF_ARCHIVE="terraform_${TF_VERSION}_linux_amd64.zip"
+readonly TF_ARCHIVE
+TF_CHECKSUM=""
+readonly TF_CHECKSUM
+TF_URL="https://releases.hashicorp.com/terraform/${TF_VERSION}/${TF_ARCHIVE}"
+readonly TF_URL
+TF_FORCE_LOCAL=1
+readonly TF_FORCE_LOCAL
+VERBOSE=0
+readonly VERBOSE
+
+
+# Start minikube
+if ! $(minikube status) or $(minikube status | grep Nonexistent\|Stopped); then
+    printf 'minikube is not running\nStarting minikube..'
+    if (( 0=="${VERBOSE}" )); then
+        minikube start --driver=podman
+    else
+        minikube start --driver=podman --alsologtostderr -v=7
+    fi
+else
+    printf 'minikube is already running\n'
+fi
+
+# Check cluster availability
+# TODO: Check for errors
+kubectl cluster-info
+
+# Deploy k8s dashboard
+if [[ $(kubectl get pods -A -o wide | grep kubernetes-dashboard | grep Running) ]]; then
+    printf "Installing k8s dashboard\n"
+    minikube addons enable metrics-server
+    minikube dashboard &
+else
+    printf 'k8s dashboard is already running\n'
+fi
+
+# Install terraform if not in PATH
+# or local version enforced
+if ! $(which terraform) or 1=="$TF_FORCE_LOCAL"; then
+    printf "Fetching terraform archive..\n"
+    curl -LO "${TF_URL}"
+    tar xf "${TF_ARCHIVE}"
+    TF_CMD="./terraform"
+else
+    TF_CMD="terraform"
+fi
+
+# Install flux if not in PATH
+# or local version enforced
+if ! $(which flux) or 1=="$FLUX_FORCE_LOCAL"; then
+    printf "Fetching flux archive..\n"
+    curl -LO "${FLUX_URL}"
+    tar xf "${FLUX_ARCHIVE}"
+    FLUX_CMD="./flux"
+else
+    FLUX_CMD="flux"
+fi
+
+# Deploy Flux Controllers
+# Needs cluster admin privileges
+if [[ $(${FLUX_CMD} get helmreleases --all-namespaces) ]]; then
+    printf 'Flux controllers are running\n'
+fi
+
+# 'flux bootstrap' is idempotent
+printf 'Installing Flux controller\n'
+${FLUX_CMD} bootstrap gitea \
+  --hostname="$GITEA_HOSTNAME" \
+  --token-auth \
+  --owner="$GITEA_USER" \
+  --repository="$PRJ"-deploy \
+  --branch=main \
+  --path=clusters/minikube \
+  --personal \
+  --read-write-key=true \
+  --private=false
