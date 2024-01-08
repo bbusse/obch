@@ -23,7 +23,7 @@ spec:
       serviceAccountName: {{ include "gtfso-import.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      restartPolicy: Never
+      restartPolicy: OnFailure
       containers:
         - name: {{ .Chart.Name }}
           envFrom:
