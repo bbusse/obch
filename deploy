@@ -7,27 +7,41 @@ DEPLOY_MODE="flux"
 readonly DEPLOY_MODE
 APP_NAMESPACE="app"
 readonly APP_NAMESPACE
-PGSQLHA_VERSION="12.3.7"
-readonly PGSQLHA_VERSION
+MONITORING_NAMESPACE="monitoring"
+readonly MONITORING_NAMESPACE
+PGSQLHA_CHART_VERSION="12.3.7"
+readonly PGSQLHA_CHART_VERSION
 PGSQLHA_OCI_URL="oci://registry-1.docker.io/bitnamicharts/postgresql-ha"
 readonly PGSQLHA_OCI_URL
+GTFSO_IMPORT_CHART_VERSION="0.1.0"
+readonly GTFSO_IMPORT_CHART_VERSION
+GTFSO_VBB_CHART_VERSION="0.1.0"
+readonly GTFSO_VBB_CHART_VERSION
 
-# Create namespace
+
+# Create namespaces
 kubectl create namespace "${APP_NAMESPACE}"
+kubectl create namespace "${MONITORING_NAMESPACE}"
 
-# Add Helm Charts
+# Add Deployments / Helm Charts either via fluxcd or Helm
 if [ "flux" == $DEPLOY_MODE ]; then
     # Add Helm Charts via Flux HelmRelease CRD
     printf "Using flux to create HelmRelease\n"
     ./flux create helmrelease pgsql-ha \
         --chart postgresql-ha \
-        --chart-version "${PGSQLHA_VERSION}" \
+        --chart-version "${PGSQLHA_CHART_VERSION}" \
         --source HelmRepository/bitnamicharts \
         --namespace "${APP_NAMESPACE}"
 elif [ "helm" == $DEPLOY_MODE ]; then
     # Add Helm Charts via Helm
     printf "Using Helm to install Chart\n"
     helm install pgsql-ha "${PGSQLHA_OCI_URL}" \
-        --version "${PGSQLHA_VERSION}" \
+        --version "${PGSQLHA_CHART_VERSION}" \
+        --namespace "${APP_NAMESPACE}"
+    helm install gtfso-import charts/gtfso-import \
+        --version "${GTFSO_IMPORT_CHART_VERSION}" \
+        --namespace "${APP_NAMESPACE}"
+    helm install gtfso-vbb charts/gtfso-vbb \
+        --version "${GTFSO_VBB_CHART_VERSION}" \
         --namespace "${APP_NAMESPACE}"
 fi

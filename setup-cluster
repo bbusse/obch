@@ -68,7 +68,7 @@ fi
 if ! $(which terraform) or 1=="$TF_FORCE_LOCAL"; then
     printf "Fetching terraform archive..\n"
     curl -LO "${TF_URL}"
-    tar xf "${TF_ARCHIVE}"
+    unzip -o "${TF_ARCHIVE}"
     TF_CMD="./terraform"
 else
     TF_CMD="terraform"
@@ -76,7 +76,7 @@ fi
 
 # Install flux if not in PATH
 # or local version enforced
-if ! $(which flux) or 1=="$FLUX_FORCE_LOCAL"; then
+if ! $(which flux) ] or 1=="$FLUX_FORCE_LOCAL"; then
     printf "Fetching flux archive..\n"
     curl -LO "${FLUX_URL}"
     tar xf "${FLUX_ARCHIVE}"
@@ -92,6 +92,9 @@ if [[ $(${FLUX_CMD} get helmreleases --all-namespaces) ]]; then
 fi
 
 # 'flux bootstrap' is idempotent
+# We use the Gitea integration with a PAT
+# that needs to be supplied to create and write to
+# Gitea fluxcd owned repositories
 printf 'Installing Flux controller\n'
 ${FLUX_CMD} bootstrap gitea \
   --hostname="$GITEA_HOSTNAME" \
