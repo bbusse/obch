@@ -9,6 +9,8 @@ DEPLOY_MODE="flux"
 readonly DEPLOY_MODE
 APP_NAMESPACE="app"
 readonly APP_NAMESPACE
+SECSCAN_NAMESPACE="security-scan"
+readonly SECSCAN_NAMESPACE
 MONITORING_NAMESPACE="monitoring"
 readonly MONITORING_NAMESPACE
 PGSQLHA_CHART_VERSION="12.3.7"
@@ -21,10 +23,13 @@ GTFSO_VBB_CHART_VERSION="0.1.0"
 readonly GTFSO_VBB_CHART_VERSION
 PROM_STACK_CHART_VERSION="55.7.0"
 readonly PROM_STACK_CHART_VERSION
+TRIVY_CHART_VERSION="0.18.4"
+readonly TRIVY_CHART_VERSION
 
 # Create namespaces
 kubectl create namespace "${APP_NAMESPACE}"
 kubectl create namespace "${MONITORING_NAMESPACE}"
+kubectl create namespace "${SECSCAN_NAMESPACE}"
 
 # Add Deployments / Helm Charts either via fluxcd or Helm
 if [ "flux" == $DEPLOY_MODE ]; then
@@ -62,6 +67,15 @@ if [ "flux" == $DEPLOY_MODE ]; then
         --chart-version "${PROM_STACK_CHART_VERSION}" \
         --namespace "${MONITORING_NAMESPACE}" \
         --source=HelmRepository/prometheus-community
+    # Vulnerability Scan
+    ./flux create source helm aqua \
+        --url https://aquasecurity.github.io/helm-charts/ \
+        --namespace "${SECSCAN_NAMESPACE}"
+    ./flux create helmrelease trivy \
+        --chart trivy-operator \
+        --chart-version "${TRIVY_CHART_VERSION}" \
+        --namespace "${SECSCAN_NAMESPACE}" \
+        --source=HelmRepository/aqua
 elif [ "helm" == $DEPLOY_MODE ]; then
     # Add Helm Charts via Helm
     printf "Using Helm to install Charts\n"
