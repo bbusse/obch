@@ -51,8 +51,7 @@ $ minikube stop
 
 ## TODOs / Notes
 gtfso-import needs the database secret for import  
-Vulnerability scanning in github action with https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning   
-Add monitoring target to kube-prometheus-stack  
+Add monitoring target for gtfs/vbb to prometheus  
 Define strategy for version updates  
 Consider SOPS for secret management  
 Terraform has minikube and flux providers  
