@@ -19,6 +19,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+    - name: Install podman
+      run: sudo apt install podman -y
     - name: Start minikube
       id: minikube
       uses: medyagh/setup-minikube@latest
