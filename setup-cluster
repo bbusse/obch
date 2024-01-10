@@ -4,7 +4,7 @@
 # with k8s dashboard and flux
 #
 
-set -eo pipefail
+set -o pipefail
 
 PRJ="obch"
 readonly PRJ

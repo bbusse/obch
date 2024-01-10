@@ -3,6 +3,8 @@
 # Deploy app to k8s using fluxcd
 #
 
+set -o pipefail
+
 DEPLOY_MODE="flux"
 readonly DEPLOY_MODE
 APP_NAMESPACE="app"
@@ -17,7 +19,8 @@ GTFSO_IMPORT_CHART_VERSION="0.1.0"
 readonly GTFSO_IMPORT_CHART_VERSION
 GTFSO_VBB_CHART_VERSION="0.1.0"
 readonly GTFSO_VBB_CHART_VERSION
-
+PROM_STACK_CHART_VERSION="55.7.0"
+readonly PROM_STACK_CHART_VERSION
 
 # Create namespaces
 kubectl create namespace "${APP_NAMESPACE}"
@@ -27,14 +30,42 @@ kubectl create namespace "${MONITORING_NAMESPACE}"
 if [ "flux" == $DEPLOY_MODE ]; then
     # Add Helm Charts via Flux HelmRelease CRD
     printf "Using flux to create HelmRelease\n"
+    # App
+    # Add a git repository as source for Helm Charts
+    ./flux create source git e2m \
+        --url=https://git.e2m.io/mue/obch \
+        --branch dev \
+        --namespace "${APP_NAMESPACE}"
+    # Add a Helm OCI repository as source for Helm Charts
+    ./flux create source helm bitnami \
+       --url=oci://registry-1.docker.io/bitnamicharts \
+       --namespace "${APP_NAMESPACE}"
     ./flux create helmrelease pgsql-ha \
         --chart postgresql-ha \
         --chart-version "${PGSQLHA_CHART_VERSION}" \
-        --source HelmRepository/bitnamicharts \
+        --source HelmRepository/bitnami \
         --namespace "${APP_NAMESPACE}"
+    ./flux create helmrelease gtfso-import \
+        --chart charts/gtfso-import \
+        --namespace ${APP_NAMESPACE} \
+        --source GitRepository/e2m
+    ./flux create helmrelease gtfso-vbb \
+        --chart charts/gtfso-vbb \
+        --namespace ${APP_NAMESPACE} \
+        --source GitRepository/e2m
+    # Monitoring
+    ./flux create source helm prometheus-community \
+        --url=https://prometheus-community.github.io/helm-charts \
+        --namespace "${MONITORING_NAMESPACE}"
+    ./flux create helmrelease prometheus \
+        --chart kube-prometheus-stack \
+        --chart-version "${PROM_STACK_CHART_VERSION}" \
+        --namespace "${MONITORING_NAMESPACE}" \
+        --source=HelmRepository/prometheus-community
 elif [ "helm" == $DEPLOY_MODE ]; then
     # Add Helm Charts via Helm
-    printf "Using Helm to install Chart\n"
+    printf "Using Helm to install Charts\n"
+    # App
     helm install pgsql-ha "${PGSQLHA_OCI_URL}" \
         --version "${PGSQLHA_CHART_VERSION}" \
         --namespace "${APP_NAMESPACE}"
@@ -44,4 +75,8 @@ elif [ "helm" == $DEPLOY_MODE ]; then
     helm install gtfso-vbb charts/gtfso-vbb \
         --version "${GTFSO_VBB_CHART_VERSION}" \
         --namespace "${APP_NAMESPACE}"
+    # Monitoring
+    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    helm repo update
+    helm install prometheus prometheus-community/kube-prometheus-stack
 fi

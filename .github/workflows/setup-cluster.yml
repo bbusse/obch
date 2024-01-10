@@ -15,11 +15,19 @@ on:
 
 jobs:
   setup-cluster:
-    name: minikube
     runs-on: ubuntu-latest
     steps:
-      - name: start minikube
-        id: minikube
-        uses: medyagh/setup-minikube@latest
-      - name: kubectl
-        run: kubectl get pods -A
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Start minikube
+      id: minikube
+      uses: medyagh/setup-minikube@latest
+    - name: kubectl
+      run: kubectl get pods -A -o wide
+    - name: Setup cluster
+      run: |
+        ./run.sh
+    - name: kubectl
+      run: |
+        kubectl get pods -A -o wide && \
+        kubectl get helmrelease -A
