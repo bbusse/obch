@@ -37,14 +37,19 @@ readonly TF_FORCE_LOCAL
 VERBOSE=0
 readonly VERBOSE
 
+minikube_driver="podman"
+
+if [[ $(grep '^ID=' /etc/os-release | awk -F'=' '{print $2}') == "ubuntu" ]]; then
+    minikube_driver="docker"
+fi
 
 # Start minikube
 if ! $(minikube status) or $(minikube status | grep Nonexistent\|Stopped); then
     printf 'minikube is not running\nStarting minikube..'
     if (( 0=="${VERBOSE}" )); then
-        minikube start --driver=podman
+        minikube start --driver="${minikube_driver}"
     else
-        minikube start --driver=podman --alsologtostderr -v=7
+        minikube start --driver="${minikube_driver}" --alsologtostderr -v=7
     fi
 else
     printf 'minikube is already running\n'

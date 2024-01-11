@@ -26,7 +26,9 @@ jobs:
       uses: medyagh/setup-minikube@latest
     - name: kubectl
       run: kubectl get pods -A -o wide
-    - name: Setup cluster
+    - shell: bash
+      env:
+        GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
       run: |
         ./run.sh
     - name: kubectl
