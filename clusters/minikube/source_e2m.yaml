@@ -1,0 +1,11 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: e2m
+  namespace: app
+spec:
+  interval: 1m0s
+  ref:
+    branch: dev
+  url: https://git.e2m.io/mue/obch

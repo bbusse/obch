@@ -1,0 +1,16 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: pgsql-ha
+  namespace: app
+spec:
+  chart:
+    spec:
+      chart: postgresql-ha
+      reconcileStrategy: ChartVersion
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami
+      version: 12.3.7
+  interval: 1m0s

@@ -1,0 +1,15 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: gtfso-vbb
+  namespace: app
+spec:
+  chart:
+    spec:
+      chart: charts/gtfso-vbb
+      reconcileStrategy: ChartVersion
+      sourceRef:
+        kind: GitRepository
+        name: e2m
+  interval: 1m0s
