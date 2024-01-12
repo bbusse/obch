@@ -2,7 +2,8 @@
 
 The infrastructure is set up with minikube and fluxcd.  
 The bitnami PostgreSQL HA chart is used for a highly available PostgreSQL
-database backend. kube-prometheus-stack is used for monitoring.  
+database backend.  
+kube-prometheus-stack is used for monitoring.  
 Trivy scans for vulnerabilities.  
   
 The app consists of two parts: an import job for PostgreSQL
@@ -26,7 +27,6 @@ $ cd obch
 $ minikube delete --all
 
 # The above was not sufficient to setup a new cluster
-# See also: https://github.com/kubernetes/minikube/issues/17683
 # Additionally deleting the local minikube config folder helped:
 $ rm -rf ~/.minikube
 ```
@@ -61,6 +61,10 @@ $ kubectl port-forward --namespace app gtfso-vbb-8586b6cddc-f29bh 8080:5000 &
 $ curl http://localhost:8080/success
 Success!
 ```
+Probe Metrics
+```
+$ curl http://localhost:8080/metrics
+```
 Show services
 ```
  kubectl get service -A                                                                                                                      NAMESPACE       NAME                                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                        AGE
@@ -92,11 +96,17 @@ security-scan   trivy-trivy-operator                                 ClusterIP  
 
 ## TODOs / Notes
 gtfso-import needs the database secret for import  
+gtfso-import: Retry job until success  
 Add gtfs-vbb as target to prometheus  
 Change default credentials for the kube-prometheus-stack  
 Define strategy for version updates  
+Consume and act on Trivy results  
 Consider SOPS / Vault for secret management  
 Terraform has minikube and flux providers  
+  
+For a pure GitOps experience the path containing the yaml manifests 
+create by 'flux create --export' would have to be added to the fluxcd
+repository
 
 ## Resources
 [Flux bootstrap for Gitea](https://fluxcd.io/flux/installation/bootstrap/gitea/)  
