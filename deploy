@@ -5,8 +5,8 @@
 
 set -o pipefail
 
-DEPLOY_MODE="flux"
-readonly DEPLOY_MODE
+FLUX_MANIFEST_PATH="clusters/minikube"
+readonly FLUX_MANIFEST_PATH
 APP_NAMESPACE="app"
 readonly APP_NAMESPACE
 SECSCAN_NAMESPACE="security-scan"
@@ -26,71 +26,66 @@ readonly PROM_STACK_CHART_VERSION
 TRIVY_CHART_VERSION="0.18.4"
 readonly TRIVY_CHART_VERSION
 
+mkdir -p "${FLUX_MANIFEST_PATH}"
+
 # Create namespaces
 kubectl create namespace "${APP_NAMESPACE}"
 kubectl create namespace "${MONITORING_NAMESPACE}"
 kubectl create namespace "${SECSCAN_NAMESPACE}"
 
-# Add Deployments / Helm Charts either via fluxcd or Helm
-if [ "flux" == $DEPLOY_MODE ]; then
-    # Add Helm Charts via Flux HelmRelease CRD
-    printf "Using flux to create HelmRelease\n"
-    # App
-    # Add a git repository as source for Helm Charts
-    ./flux create source git e2m \
-        --url=https://git.e2m.io/mue/obch \
-        --branch dev \
-        --namespace "${APP_NAMESPACE}"
-    # Add a Helm OCI repository as source for Helm Charts
-    ./flux create source helm bitnami \
-       --url=oci://registry-1.docker.io/bitnamicharts \
-       --namespace "${APP_NAMESPACE}"
-    ./flux create helmrelease pgsql-ha \
-        --chart postgresql-ha \
-        --chart-version "${PGSQLHA_CHART_VERSION}" \
-        --source HelmRepository/bitnami \
-        --namespace "${APP_NAMESPACE}"
-    ./flux create helmrelease gtfso-import \
-        --chart charts/gtfso-import \
-        --namespace ${APP_NAMESPACE} \
-        --source GitRepository/e2m
-    ./flux create helmrelease gtfso-vbb \
-        --chart charts/gtfso-vbb \
-        --namespace ${APP_NAMESPACE} \
-        --source GitRepository/e2m
-    # Monitoring
-    ./flux create source helm prometheus-community \
-        --url=https://prometheus-community.github.io/helm-charts \
-        --namespace "${MONITORING_NAMESPACE}"
-    ./flux create helmrelease prometheus \
-        --chart kube-prometheus-stack \
-        --chart-version "${PROM_STACK_CHART_VERSION}" \
-        --namespace "${MONITORING_NAMESPACE}" \
-        --source=HelmRepository/prometheus-community
-    # Vulnerability Scan
-    ./flux create source helm aqua \
-        --url https://aquasecurity.github.io/helm-charts/ \
-        --namespace "${SECSCAN_NAMESPACE}"
-    ./flux create helmrelease trivy \
-        --chart trivy-operator \
-        --chart-version "${TRIVY_CHART_VERSION}" \
-        --namespace "${SECSCAN_NAMESPACE}" \
-        --source=HelmRepository/aqua
-elif [ "helm" == $DEPLOY_MODE ]; then
-    # Add Helm Charts via Helm
-    printf "Using Helm to install Charts\n"
-    # App
-    helm install pgsql-ha "${PGSQLHA_OCI_URL}" \
-        --version "${PGSQLHA_CHART_VERSION}" \
-        --namespace "${APP_NAMESPACE}"
-    helm install gtfso-import charts/gtfso-import \
-        --version "${GTFSO_IMPORT_CHART_VERSION}" \
-        --namespace "${APP_NAMESPACE}"
-    helm install gtfso-vbb charts/gtfso-vbb \
-        --version "${GTFSO_VBB_CHART_VERSION}" \
-        --namespace "${APP_NAMESPACE}"
-    # Monitoring
-    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-    helm repo update
-    helm install prometheus prometheus-community/kube-prometheus-stack
-fi
+# Add Deployments / Helm Charts via fluxcd
+# Add Helm Charts via Flux HelmRelease CRD
+printf "Using flux to create Sources and HelmReleases\n"
+# App
+# Add a git repository as source for Helm Charts
+./flux create source git e2m \
+    --url=https://git.e2m.io/mue/obch \
+    --branch dev \
+    --namespace "${APP_NAMESPACE}" \
+    --export > "${FLUX_MANIFEST_PATH}/source_e2m.yaml"
+
+# Add a Helm OCI repository as source for Helm Charts
+./flux create source helm bitnami \
+   --url=oci://registry-1.docker.io/bitnamicharts \
+    --namespace "${APP_NAMESPACE}" \
+    --export > "${FLUX_MANIFEST_PATH}/source_bitnami.yaml"
+./flux create helmrelease pgsql-ha \
+    --chart postgresql-ha \
+    --chart-version "${PGSQLHA_CHART_VERSION}" \
+    --source HelmRepository/bitnami \
+    --namespace "${APP_NAMESPACE}" \
+    --export > "${FLUX_MANIFEST_PATH}/pgsql-ha.yaml"
+./flux create helmrelease gtfso-import \
+    --chart charts/gtfso-import \
+    --namespace ${APP_NAMESPACE} \
+    --source GitRepository/e2m \
+    --export > "${FLUX_MANIFEST_PATH}/gtfso-import.yaml"
+./flux create helmrelease gtfso-vbb \
+    --chart charts/gtfso-vbb \
+    --namespace ${APP_NAMESPACE} \
+    --source GitRepository/e2m \
+    --export > "${FLUX_MANIFEST_PATH}/gtfso-vbb.yaml"
+
+# Monitoring
+./flux create source helm prometheus-community \
+    --url=https://prometheus-community.github.io/helm-charts \
+    --namespace "${MONITORING_NAMESPACE}" \
+    --export > "${FLUX_MANIFEST_PATH}"/source_prometheus.yaml
+./flux create helmrelease prometheus \
+    --chart kube-prometheus-stack \
+    --chart-version "${PROM_STACK_CHART_VERSION}" \
+    --namespace "${MONITORING_NAMESPACE}" \
+    --source=HelmRepository/prometheus-community \
+    --export > "${FLUX_MANIFEST_PATH}/prometheus-stack.yaml"
+
+# Vulnerability Scan
+./flux create source helm aqua \
+    --url https://aquasecurity.github.io/helm-charts/ \
+    --namespace "${SECSCAN_NAMESPACE}" \
+    --export > "${FLUX_MANIFEST_PATH}/source_trivy.yaml"
+./flux create helmrelease trivy \
+    --chart trivy-operator \
+    --chart-version "${TRIVY_CHART_VERSION}" \
+    --namespace "${SECSCAN_NAMESPACE}" \
+    --source=HelmRepository/aqua \
+    --export > "${FLUX_MANIFEST_PATH}/trivy.yaml"
