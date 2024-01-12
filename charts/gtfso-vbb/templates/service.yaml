@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "gtfso-vbb.labels" . | fromYaml | toYaml | nindent 4 }}
+  name: {{ include "gtfso-vbb.fullname" . }}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 5000
+  selector:
+    {{- include "gtfso-vbb.selectorLabels" . | fromYaml | toYaml | nindent 4 }}

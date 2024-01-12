@@ -82,8 +82,7 @@ tolerations: []
 affinity: {}
 
 # Database
-db_host: fdc7:a61d:d247::42
+db_host: pgsql-ha-postgresql-ha-pgpool
 db_user: gtfso
 db_name: gtfso
 db_locale: de_DE.UTF-8
-url_data: https://www.vbb.de/vbbgtfs
