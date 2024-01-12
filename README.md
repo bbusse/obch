@@ -105,7 +105,7 @@ Consider SOPS / Vault for secret management
 Terraform has minikube and flux providers  
   
 For a pure GitOps experience the path containing the yaml manifests 
-create by 'flux create --export' would have to be added to the fluxcd
+created by 'flux create [..] --export' would have to be added to the fluxcd
 repository
 
 ## Resources
