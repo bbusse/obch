@@ -28,9 +28,9 @@ jobs:
       run: kubectl get pods -A -o wide
     - shell: bash
       env:
-        GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        TOKEN: ${{ secrets.GITEA_TOKEN }}
       run: |
-        ./run.sh
+        GITEA_TOKEN="$TOKEN" ./run.sh
     - name: kubectl
       run: |
         kubectl get pods -A -o wide && \
